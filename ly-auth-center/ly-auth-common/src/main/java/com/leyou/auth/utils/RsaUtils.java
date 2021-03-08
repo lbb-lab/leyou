@@ -2,10 +2,12 @@ package com.leyou.auth.utils;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.security.*;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.X509EncodedKeySpec;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.*;
+import java.util.Arrays;
 
 /**
  * @author bystander
@@ -22,7 +24,8 @@ public class RsaUtils {
      */
     public static PublicKey getPublicKey(String fileName) throws Exception {
         byte[] bytes = readFile(fileName);
-        return getPublicKey(bytes);
+//        return getPublicKey(bytes);
+        return decodePublicKey(bytes);
     }
 
     /**
@@ -109,5 +112,49 @@ public class RsaUtils {
             dest.createNewFile();
         }
         Files.write(dest.toPath(), bytes);
+    }
+
+    /**
+     * openSSH生成的转换为java可识别的
+     * @param key
+     * @return
+     * @throws NoSuchAlgorithmException
+     * @throws InvalidKeySpecException
+     */
+    public static RSAPublicKey decodePublicKey(byte[] key) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        byte[] sshrsa = new byte[] { 0, 0, 0, 7, 's', 's', 'h', '-', 'r', 's', 'a' };
+        int start_index = sshrsa.length;
+        /* Decode the public exponent */
+        int len = decodeUInt32(key, start_index);
+        start_index += 4;
+        byte[] pe_b = new byte[len];
+//        byte[] pe_b = new byte[400];
+//        for(int i= 0 ; i < 385; i++){
+        for(int i= 0 ; i < len; i++){
+            pe_b[i] = key[start_index++];
+        }
+        BigInteger pe = new BigInteger(pe_b);
+        /* Decode the modulus */
+        len = decodeUInt32(key, start_index);
+        start_index += 4;
+        byte[] md_b = new byte[len];
+        for(int i = 0 ; i < len; i++){
+            md_b[i] = key[start_index++];
+        }
+        BigInteger md = new BigInteger(md_b);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        KeySpec ks = new RSAPublicKeySpec(md, pe);
+        return (RSAPublicKey) keyFactory.generatePublic(ks);
+    }
+
+
+    public static int decodeUInt32(byte[] key, int start_index){
+        byte[] test = Arrays.copyOfRange(key, start_index, start_index + 4);
+//        return new BigInteger(test).intValue();
+        int int_24 = (key[start_index++] << 24) & 0xff;
+        int int_16 = (key[start_index++] << 16) & 0xff;
+        int int_8 = (key[start_index++] << 8) & 0xff;
+        int int_0 = key[start_index++] & 0xff;
+        return int_24 + int_16 + int_8 + int_0;
     }
 }

@@ -38,7 +38,8 @@ ribbon:
   readTimeout: 5000
 ly:
   jwt:
-    pubKeyPath: /Users/bystander/id_rsa.pub # 公钥地址
+#    pubKeyPath: /Users/bystander/id_rsa.pub # 公钥地址
+    pubKeyPath: /opt/app/webapps/leyou/lbb/id_rsa.pub # 公钥地址
     cookieName: LY_TOKEN # cookie的名称
   filter:
     allowPaths:
